@@ -74,3 +74,59 @@
       (unless (server-running-p)
         (message "Starting a server...")
         (server-start)))))
+
+;;翻訳設定
+(require 'google-translate)
+
+(defvar google-translate-english-chars "[:ascii:]’“”–"
+  "これらの文字が含まれているときは英語とみなす")
+(defun google-translate-enja-or-jaen (&optional string)
+  "regionか、現在のセンテンスを言語自動判別でGoogle翻訳する。"
+  (interactive)
+  (setq string
+        (cond ((stringp string) string)
+              (current-prefix-arg
+               (read-string "Google Translate: "))
+              ((use-region-p)
+               (buffer-substring (region-beginning) (region-end)))
+              (t
+               (save-excursion
+                 (let (s)
+                   (forward-char 1)
+                   (backward-sentence)
+                   (setq s (point))
+                   (forward-sentence)
+                   (buffer-substring s (point)))))))
+  (let* ((asciip (string-match
+                  (format "\\`[%s]+\\'" google-translate-english-chars)
+                  string)))
+    (run-at-time 0.1 nil 'deactivate-mark)
+    (google-translate-translate
+     (if asciip "en" "ja")
+     (if asciip "ja" "en")
+     string)))
+(global-set-key (kbd "C-c t") 'google-translate-enja-or-jaen)
+
+;;ファイルパスの設定
+(setq org-directory "~/org")
+(setq taskfile (concat org-directory "/tasks.org"))
+(setq notefile (concat org-directory "/notes.org"))
+(setq org-capture-templates
+      '(
+	      ;; タスク（スケジュールなし）
+	      ("t" "タスク（スケジュールなし）" entry (file+headline taskfile "Tasks")
+	       "** TODO %?\n")
+
+	      ;; タスク（スケジュールあり）
+	      ("s" "タスク（スケジュールあり）" entry (file+headline taskfile "Tasks")
+	       "** TODO %?\n   SCHEDULED: %^T\n")
+
+	      ;; タスク（デッドラインあり）
+	      ("s" "タスク（デッドラインあり）" entry (file+headline taskfile "Tasks")
+	       "** TODO %?\n   DEADLINE: %^T\n")
+
+	      ;; notes
+	      ("n" "Notes" entry (file+headline notefile "Notes")
+	       "** %? %^U\n")
+        )
+      )
