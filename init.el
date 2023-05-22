@@ -130,3 +130,5 @@
 	       "** %? %^U\n")
         )
       )
+
+(setq org-refile-targets '((org-agenda-files :maxlevel . 1)))
